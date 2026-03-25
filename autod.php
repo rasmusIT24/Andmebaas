@@ -1,19 +1,43 @@
-<?php
-$conn = new mysqli("localhost", "root", "", "andmebaas");
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KuradiAutod.ee</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
-$q = isset($_GET['q']) ? $_GET['q'] : '';
+</head>
 
-if ($q == '') {
-    $sql = "SELECT * FROM autod";
-} else {
-    $sql = "SELECT * FROM autod 
-            WHERE mark LIKE '%$q%' 
-            OR mudel LIKE '%$q%'";
-}
 
-$result = $conn->query($sql);
+<body>
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#" class="fw-bold">Autorent</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="etapp1.html">Avaleht</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Autod</a>
+          <li class="nav-item"></li>
+          <a class="nav-link" href="#">Hinnad</a>
+          <a class="nav-link" href="#">Kontakt</a>
+        </li>
+          </ul>
+        </li>
+        </li>
+      </ul>
+      <form class="d-flex" role="search">
+        <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot"/>
+        <button class="btn btn-outline-dark" type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+</nav>
 
-while($row = $result->fetch_assoc()) {
-    echo $row['mark'] . " " . $row['mudel'] . "<br>";
-}
-?>
+
+</body>
