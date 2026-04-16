@@ -79,38 +79,68 @@ include("config.php");
     </div>
   </div>
 </section>
-<div class="container py-5">
 
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+<?php
+$paring = 'SELECT * FROM cars';
+$valjund = mysqli_query($yhendus, $paring);
 
-    
+if ($valjund) {
+    // Tulemuste läbikäimine ja kuvamine
+    while ($rida = mysqli_fetch_array($valjund)) {
+    print_r($rida["models"]);
+    }}
 
-    <!-- 1 auto -->
-    <div class="col">
-      <div class="card h-100">
-        <img src="https://picsum.photos/200/200" class="card-img-top">
+// $models = [
+//     ["name" => "Audi Q8", "type" => "Crossover"],
+//     ["name" => "Mercedes A-Class", "type" => "Hatchback"],
+//     ["name" => "Mercedes C AMG", "type" => "Coupe"],
+//     ["name" => "Audi R8 Spyder", "type" => "Cabrio"]
+// ];
 
-        <div class="card-body d-flex flex-column">
+// $engines = ["V4", "V6", "V8", "V10"];
+// $fuels = ["Bensiin", "Diisel", "Hübrid"];
+// $power = [50, 80, 100, 120, 150, 200, 250];
+// $years = range(2015, 2024);
+?>
 
-          <div class="d-flex justify-content-between">
-            <h5 class="card-title">Mercedes A-Class</h5>
-            <span>♡</span>
-          </div>
+<div class="container mt-4">
+    <div class="row g-4">
 
-          <p class="text-muted small">Hatchback · 2020</p>
+        <?php
+        for ($i = 0; $i < 8; $i++) {
 
-          <p class="mb-1">Mootor: V4</p>
-          <p class="mb-1">Kütus: Bensiin</p>
-          <p class="mb-3">Hind: 90 €/päev</p>
+            $car = $models[array_rand($model)];
+            $engine = $engines[array_rand($engines)];
+            $fuel = $fuels[array_rand($fuels)];
+            $hp = $power[array_rand($power)];
+            $year = $years[array_rand($years)];
+        ?>
 
-          <a href="autod.php?id=?= $car['id'] ?>" class="btn-long-black">Rendi</a>
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <img src="https://picsum.photos/200/200" class="card-img-top" alt="<?= $car['name'] ?>">
+
+                <div class="card-body">
+                    <h5 class="card-title"><?= $car['name'] ?></h5>
+                    <p class="card-text">
+                        <?= $car['type'] ?> - <?= $year ?><br>
+                        <strong>Mootor:</strong> <?= $engine ?><br>
+                        <strong>Kütus:</strong> <?= $fuel ?><br>
+                        <strong>Hind:</strong> <?= $hp ?> €/päev
+                    </p>
+                </div>
+
+                <div class="card-footer text-center">
+                    <a href="#" class="btn btn-dark w-100">Rendi</a>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <?php } ?>
+
     </div>
+</div>
 
-    <!-- /1 auto -->
-
-  </div>
 
 </div>
 <nav class="d-flex justify-content-center my-5">
