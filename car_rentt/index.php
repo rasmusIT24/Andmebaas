@@ -42,10 +42,10 @@ include("config.php");
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">Avaleht</a>
+          <a class="nav-link active" aria-current="page" href="index.php">Avaleht</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Autod</a>
+          <a class="nav-link" href="index.php">Autod</a>
           <li class="nav-item"></li>
           <a class="nav-link" href="#">Hinnad</a>
           <a class="nav-link" href="#">Kontakt</a>
@@ -55,8 +55,18 @@ include("config.php");
         </li>
       </ul>
       <form class="d-flex" role="search">
-        <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot"/>
+        <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot" name="otsi"/>
         <button class="btn btn-outline-dark" type="submit">Search</button>
+        <?php
+//         if (!empty($_GET['otsi'])) {
+// 	//kasutaja tekst vormist
+// 	$otsi = $_GET['otsi'];
+// 	//päring
+// 	$paring = 'SELECT * FROM cars WHERE mark LIKE "'.$otsi.'"';
+//   var_dump($paring);
+	
+// }
+        ?> 
       </form>
     </div>
   </div>
@@ -80,63 +90,56 @@ include("config.php");
   </div>
 </section>
 
-<?php
-$paring = 'SELECT * FROM cars';
-$valjund = mysqli_query($yhendus, $paring);
 
-if ($valjund) {
-    // Tulemuste läbikäimine ja kuvamine
-    while ($rida = mysqli_fetch_array($valjund)) {
-    print_r($rida["models"]);
-    }}
-
-// $models = [
-//     ["name" => "Audi Q8", "type" => "Crossover"],
-//     ["name" => "Mercedes A-Class", "type" => "Hatchback"],
-//     ["name" => "Mercedes C AMG", "type" => "Coupe"],
-//     ["name" => "Audi R8 Spyder", "type" => "Cabrio"]
-// ];
-
-// $engines = ["V4", "V6", "V8", "V10"];
-// $fuels = ["Bensiin", "Diisel", "Hübrid"];
-// $power = [50, 80, 100, 120, 150, 200, 250];
-// $years = range(2015, 2024);
-?>
 
 <div class="container mt-4">
     <div class="row g-4">
 
         <?php
-        for ($i = 0; $i < 8; $i++) {
+        $paring = 'SELECT * FROM cars ';
+        if (!empty($_GET['otsi'])) {
+        $otsi = $_GET['otsi'];
+        $paring.='WHERE mark  LIKE "'.$otsi.'"';
+        }
+        $paring .='LIMIT 8';
+        // var_dump($paring);
+$valjund = mysqli_query($yhendus, $paring);
 
-            $car = $models[array_rand($model)];
-            $engine = $engines[array_rand($engines)];
-            $fuel = $fuels[array_rand($fuels)];
-            $hp = $power[array_rand($power)];
-            $year = $years[array_rand($years)];
+if ($valjund) {
+    // Tulemuste läbikäimine ja kuvamine
+    while ($rida = mysqli_fetch_array($valjund)) {
+    // print_r($rida["model"]);
+    
+        // for ($i = 0; $i < 8; $i++) {
+            $id = $rida["id"];
+            $mark = $rida["mark"];
+            $model =  $rida["model"];
+            $engine =  $rida["engine"];
+            $fuel =  $rida["fuel"];
+            $price =  $rida["price"];
+            $image =  $rida["image"];
         ?>
 
         <div class="col-md-3">
             <div class="card h-100 shadow-sm">
-                <img src="https://picsum.photos/200/200" class="card-img-top" alt="<?= $car['name'] ?>">
+                <img src="https://loremflickr.com/400/250/<?= $mark ?>" class="card-img-top" alt="<?= $mark ?>">
 
                 <div class="card-body">
-                    <h5 class="card-title"><?= $car['name'] ?></h5>
+                    <h5 class="card-title"><?= $mark." ".$model ?></h5>
                     <p class="card-text">
-                        <?= $car['type'] ?> - <?= $year ?><br>
                         <strong>Mootor:</strong> <?= $engine ?><br>
                         <strong>Kütus:</strong> <?= $fuel ?><br>
-                        <strong>Hind:</strong> <?= $hp ?> €/päev
+                        <strong>Hind:</strong> <?= $price ?> €/päev
                     </p>
                 </div>
 
                 <div class="card-footer text-center">
-                    <a href="#" class="btn btn-dark w-100">Rendi</a>
+                    <a href="autod.php?id=<?= $id ?>" class="btn btn-dark w-100">Rendi</a>
                 </div>
             </div>
         </div>
 
-        <?php } ?>
+        <?php }} ?>
 
     </div>
 </div>

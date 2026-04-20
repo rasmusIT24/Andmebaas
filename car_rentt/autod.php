@@ -1,3 +1,30 @@
+<?php
+include("config.php");
+if (isset($_GET['id'])) {
+
+    $id = intval($_GET['id']);
+    $paring = "SELECT * FROM cars WHERE id = $id";
+    $valjund = mysqli_query($yhendus, $paring);
+    $rida = mysqli_fetch_assoc($valjund);
+
+} else {
+
+    $q = $_GET['q'] ?? '';
+    $q = mysqli_real_escape_string($yhendus, $q);
+
+    if ($q === '') {
+        $paring = "SELECT * FROM cars";
+    } else {
+        $paring = "
+            SELECT * FROM cars
+            WHERE mark LIKE '%$q%'
+               OR model LIKE '%$q%'
+        ";
+    }
+
+    $valjund = mysqli_query($yhendus, $paring);
+}
+?>
 <!doctype html>
 <html lang="en">
   <head>
@@ -7,8 +34,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
 </head>
-
-
 <body>
         <nav class="navbar navbar-expand-lg bg-body-tertiary">
   <div class="container-fluid">
@@ -31,32 +56,55 @@
         </li>
         </li>
       </ul>
-      <form class="d-flex" role="search">
-        <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot"/>
-        <button class="btn btn-outline-dark" type="submit">Search</button>
+<form class="d-flex" role="search" method="GET" action="autod.php">
+    <input class="form-control me-2" type="text" name="q" placeholder="Otsi autot">
+    <button class="btn btn-outline-dark" type="submit">Otsi</button>
+</form>
+<?php
+$paring = "SELECT * FROM cars WHERE id =".$_GET['id']."";
+?>
+
       </form>
     </div>
   </div>
 </nav>
 <div class="container py-5">
   <div class="card shadow-sm border-0">
+    <?php
+    $paring = "SELECT * FROM cars WHERE id =".$_GET['id']."";
+    // var_dump($paring);
+$valjund = mysqli_query($yhendus, $paring);
+$rida = mysqli_fetch_array($valjund);
+          $id = $rida["id"];
+            $mark = $rida["mark"];
+            $model =  $rida["model"];
+            $engine =  $rida["engine"];
+            $fuel =  $rida["fuel"];
+            $price =  $rida["price"];
+            $image =  $rida["image"];
+
+
+
+
+
+    ?>
     <div class="row g-0">
       <div class="col-md-6">
-        <img src="https://picsum.photos/200/200" class="img-fluid h-100 w-100 object-fit-cover" alt="Car Image">
+        <img src="https://loremflickr.com/400/250/<?= $mark ?>" class="img-fluid h-100 w-100 object-fit-cover" alt="Car Image">
 </div>
       <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
         <div>
-          <h2 class="fw-bold">Audi R8 Spyder</h2>
-          <p class="text-muted mb-4">Cabriolet • 2021</p>
+          <h2 class="fw-bold"> <?= $mark ?> </h2>
+          <p class="text-muted mb-4"><?= $model ?></p>
           <ul class="list-unstyled">
-            <li><strong>Mootor:</strong> V10</li>
-            <li><strong>Kütus:</strong> Bensiin</li>
+            <li><strong>Mootor:</strong> <?= $engine ?> </li>
+            <li><strong>Kütus:</strong> <?= $fuel ?> </li>
             <li><strong>Käigukast:</strong> Automaat</li>
             <li><strong>Kohad:</strong> 2</li>
           </ul>
         </div>
         <div class="mt-4">
-          <h3 class="fw-bold mb-3">250 € / päev</h3>
+          <h3 class="fw-bold mb-3"><?= $price ?>€ / päev</h3>
           <button class="btn btn-dark btn-lg w-100">Rendi</button>
         </div>
       </div>
