@@ -25,3 +25,8 @@
       </ul>
       <form class="d-flex" role="search">
         <button class="btn btn-outline-dark" type="submit">Logout</button>
+</nav>
+
+  </div>
+</div>
+</body>
