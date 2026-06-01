@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['tuvastamine'])) {
+  header('Location: login.php');
+  exit();
+  }
 include("config.php");
 ?>
 <!DOCTYPE html>
@@ -57,6 +62,7 @@ include("config.php");
       <form class="d-flex" role="search">
         <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot" name="otsi"/>
         <button class="btn btn-outline-dark" type="submit">Search</button>
+        <a class="btn btn-outline-dark" href="logout.php">Logout</a>
         <?php
 //         if (!empty($_GET['otsi'])) {
 // 	//kasutaja tekst vormist
@@ -123,6 +129,9 @@ if ($valjund) {
         <?php }} ?>
         
 </table>
+<div class="d-flex align-items-center">
+  <button class="btn btn-dark ms-auto" href="add_car.php">Lisa auto</button>
+</div>
     </div>
 </div>
 

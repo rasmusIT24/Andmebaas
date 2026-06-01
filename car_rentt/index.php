@@ -57,6 +57,7 @@ include("config.php");
       <form class="d-flex" role="search">
         <input class="form-control me-2" type="Otsi autot" placeholder="Otsi autot" aria-label="Otsi autot" name="otsi"/>
         <button class="btn btn-outline-dark" type="submit">Search</button>
+        <a class="btn btn-outline-dark" href="admin.php">admin</a>
         <?php
 //         if (!empty($_GET['otsi'])) {
 // 	//kasutaja tekst vormist
