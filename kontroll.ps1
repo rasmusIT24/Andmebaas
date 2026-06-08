@@ -1,16 +1,21 @@
 # =================================================================================
-# KURSUSE PROGRESSI RAPORT - AUTOMAATKONTROLLI SKRIPT
-# Tulemus väljastatakse konsooli selge tabelina: TEHTUD / TEGEMATA
+# KURSUSE PROGRESSI RAPORT - AUTOMAATKONTROLLI SKRIPT KOOS SALVESTAMISEGA
+# Tulemus väljastatakse konsooli selge tabelina ja salvestatakse töölauale.
 # =================================================================================
 
-# --- Kasutaja seadistused (muudetud vastavalt sisendile) ---
+# --- Kasutaja seadistused (Parandatud trükiviga: ojala.forest) ---
 $OodatavServeriNimi = "AD1"
-$OodatavIPMuster    = '^10\.0\.\d{1,3}\.10$' # Sobib 10.0.XXX.10 kujuga
-$OodatavDomeenMuster = "^(ojala\.ofrest|test\.local)$" # Lubab mõlemat etteantud domeeni
+$OodatavIPMuster    = '^10\.0\.\d{1,3}\.10$' 
+$OodatavDomeenMuster = "^(ojala\.forest|test\.local)$" 
 
 # Dünaamiline domeeninime tuvastus serverist
 $TegelikDomeen = (Get-WmiObject Win32_ComputerSystem).Domain
 $PraeguneNimi = $env:COMPUTERNAME
+
+# Failide salvestamise asukoht (Töölaud)
+$Toolaud = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop")
+$TxtFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.txt")
+$CsvFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.csv")
 
 # Raporti massiiv tulemuste kogumiseks
 $Raport = @()
@@ -18,10 +23,10 @@ $Raport = @()
 # Abifunktsioon tulemuste lisamiseks
 function Lisa-Tulemus ($Kategooria, $Kontroll, $Staatus, $Detailid) {
     $Objekt = [PSCustomObject]@{
-        'Kategooria' = $Kategooria
+        'Kategooria'         = $Kategooria
         'Kontrollitav punkt' = $Kontroll
-        'Staatus'    = $Staatus
-        'Detailid'   = $Detailid
+        'Staatus'            = $Staatus
+        'Detailid'           = $Detailid
     }
     $script:Raport += $Objekt
 }
@@ -31,14 +36,12 @@ function Lisa-Tulemus ($Kategooria, $Kontroll, $Staatus, $Detailid) {
 # ---------------------------------------------------------------------------------
 $Kat = "Baasvõrk ja domeen"
 
-# Serveri nimi (tõstutundetu kontroll)
 if ($PraeguneNimi -ieq $OodatavServeriNimi) {
     Lisa-Tulemus $Kat "Serveri nimi on AD1" "TEHTUD" "Nimi on korras ($PraeguneNimi)"
 } else {
     Lisa-Tulemus $Kat "Serveri nimi on AD1" "TEGEMATA" "Praegune nimi: $PraeguneNimi"
 }
 
-# IP-aadress
 $IPAadressid = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceComponentType Hardware).IPAddress
 $IPSobib = $false
 $LeitudIP = ""
@@ -51,11 +54,10 @@ if ($IPSobib) {
     Lisa-Tulemus $Kat "IP-aadress on 10.0.XXX.10" "TEGEMATA" "Leitud IP-d: ($($IPAadressid -join ', '))"
 }
 
-# Domeeni kättesaadavus (kontrollib ojala.ofrest või test.local olemasolu)
 if ($TegelikDomeen -match $OodatavDomeenMuster) {
     Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEHTUD" "Domeen: $TegelikDomeen"
 } else {
-    Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEGEMATA" "Tuvastatud domeen: $TegelikDomeen (ootasime ojala.ofrest või test.local)"
+    Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEGEMATA" "Tuvastatud domeen: $TegelikDomeen (ootasime ojala.forest või test.local)"
 }
 
 # ---------------------------------------------------------------------------------
@@ -65,26 +67,18 @@ $Kat = "AD Struktuur"
 Import-Module ActiveDirectory -ErrorAction SilentlyContinue
 
 if (Get-Module ActiveDirectory) {
-    # OU kontroll
     $Oud = @("KASUTAJAD", "LEKTORID", "TUDENGID", "ARVUTID")
     foreach ($OU in $Oud) {
         $LeitudOU = Get-ADOrganizationalUnit -Filter "Name -eq '$OU'" -ErrorAction SilentlyContinue
-        if ($LeitudOU) {
-            Lisa-Tulemus $Kat "OU $OU olemasolu" "TEHTUD" "Leitud"
-        } else {
-            Lisa-Tulemus $Kat "OU $OU olemasolu" "TEGEMATA" "Puudub"
-        }
+        if ($LeitudOU) { Lisa-Tulemus $Kat "OU $OU olemasolu" "TEHTUD" "Leitud" }
+        else { Lisa-Tulemus $Kat "OU $OU olemasolu" "TEGEMATA" "Puudub" }
     }
 
-    # Gruppide kontroll
     $Grupid = @("Lektorid", "Tudengid", "RedirectedDirectories")
     foreach ($Grupp in $Grupid) {
         $LeitudGrupp = Get-ADGroup -Filter "Name -eq '$Grupp'" -ErrorAction SilentlyContinue
-        if ($LeitudGrupp) {
-            Lisa-Tulemus $Kat "Grupp $Grupp loodud" "TEHTUD" "Leitud"
-        } else {
-            Lisa-Tulemus $Kat "Grupp $Grupp loodud" "TEGEMATA" "Puudub"
-        }
+        if ($LeitudGrupp) { Lisa-Tulemus $Kat "Grupp $Grupp loodud" "TEHTUD" "Leitud" }
+        else { Lisa-Tulemus $Kat "Grupp $Grupp loodud" "TEGEMATA" "Puudub" }
     }
 } else {
     Lisa-Tulemus $Kat "AD kontroll" "TEGEMATA" "ActiveDirectory moodul pole saadaval"
@@ -109,7 +103,7 @@ if (Get-Module ActiveDirectory) {
             if ($Grupid -contains $K.Grupp) {
                 Lisa-Tulemus $Kat "Kasutaja $($K.Nimi)" "TEHTUD" "Olemas ja grupis $($K.Grupp)"
             } else {
-                Lisa-Tulemus $Kat "Kasutaja $($K.Nimi)" "TEGEMATA" "Kasutaja olemas, kuid puudub grupist $($K.Grupp)"
+                Lisa-Tulemus $Kat "Kasutaja $($K.Nimi)" "TEGEMATA" "Puudub grupist $($K.Grupp)"
             }
         } else {
             Lisa-Tulemus $Kat "Kasutaja $($K.Nimi)" "TEGEMATA" "Kasutajat ei eksisteeri"
@@ -138,7 +132,6 @@ foreach ($R in $Rollid) {
     }
 }
 
-# DHCP Skoop "HKHK"
 if (Get-Command Get-DhcpServerv4Scope -ErrorAction SilentlyContinue) {
     $Skoop = Get-DhcpServerv4Scope | Where-Object {$_.Name -eq "HKHK"} -ErrorAction SilentlyContinue
     if ($Skoop) {
@@ -155,17 +148,15 @@ if (Get-Command Get-DhcpServerv4Scope -ErrorAction SilentlyContinue) {
 # ---------------------------------------------------------------------------------
 $Kat = "Failiteenused ja DFS"
 
-# Kaustade kontroll
 $Kaustad = @("F:\DFS_Lektoritele", "F:\DFS_Tudengitele")
 foreach ($Kaust in $Kaustad) {
     if (Test-Path -Path $Kaust) {
         Lisa-Tulemus $Kat "Kaust $Kaust eksisteerib" "TEHTUD" "Leitud kettalt"
     } else {
-        Lisa-Tulemus $Kat "Kaust $Kaust eksisteerib" "TEGEMATA" "Ei leitud või F: ketas puudub"
+        Lisa-Tulemus $Kat "Kaust $Kaust eksisteerib" "TEGEMATA" "Ei leitud või F: puudub"
     }
 }
 
-# DFS Nimeruum (otsib nimeruumi, mis lõppeb nimega "\Tudengid")
 if (Get-Command Get-DfsnRoot -ErrorAction SilentlyContinue) {
     $DfsJuured = Get-DfsnRoot -Path "\\*\*" -ErrorAction SilentlyContinue
     $DfsLeitud = $false
@@ -238,4 +229,48 @@ try {
 # ---------------------------------------------------------------------------------
 # RAPORTI KUVAMINE TABELINA JA VÄRVIKODEERIMINE
 # ---------------------------------------------------------------------------------
+
+# =================================================================================
+# AINULT FAILIDESSE SALVESTAMISE KOODIPLOKK
+# =================================================================================
+
+# 1. Tuvastame kasutaja töölaua (Desktop) kausta asukoha
+$Toolaud = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop")
+$TxtFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.txt")
+$CsvFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.csv")
+
+# 2. Tekstifaili (.txt) koostamine ja ilusa tabelina vormindamine
+$TxtSisu = @()
+$TxtSisu += "======================================================================"
+$TxtSisu += "                KURSUSE PROGRESSI RAPORT: AUTOMAATAUDIT              "
+$TxtSisu += "======================================================================"
+$TxtSisu += "Genereeritud: $(Get-Date)"
+$TxtSisu += "Server: $env:COMPUTERNAME"
+$TxtSisu += ""
+# Tabeli päis (veergude laiused: 25, 35, 10 sümbolit)
+$TxtSisu += "{0,-25} | {1,-35} | {2,-10} | {3}" -f "Kategooria", "Kontrollitav punkt", "Staatus", "Detailid"
+$TxtSisu += "-------------------------------------------------------------------------------------------------------"
+
+# Lisame iga tulemuse rea tabelisse
+foreach ($Rida in $Raport) {
+    $TxtSisu += "{0,-25} | {1,-35} | {2,-10} | {3}" -f $Rida.Kategooria, $Rida.'Kontrollitav punkt', $Rida.Staatus, $Rida.Detailid
+}
+$TxtSisu += "======================================================================"
+
+# Kirjutame sisu tekstifaili (UTF-8 tagab täpitähtede õige kuvamise)
+$TxtSisu | Out-File -FilePath $TxtFailiTee -Encoding utf8 -Force
+
+
+# 3. CSV faili (.csv) eksportimine Exceli jaoks
+$Raport | Export-Csv -Path $CsvFailiTee -NoTypeInformation -Delimiter "," -Encoding utf8 -Force
+
+
+# 4. Teavitus konsooli, et failid on valmis
+Write-Host ""
+Write-Host "Raportid edukalt töölauale salvestatud!" -ForegroundColor Cyan
+Write-Host "-> Vaata faili: $TxtFailiTee" -ForegroundColor Gray
+Write-Host "-> Vaata faili: $CsvFailiTee" -ForegroundColor Gray
+
+
 Clear-Host
+Write-Host "======================================================================" -ForegroundColor Cyan
