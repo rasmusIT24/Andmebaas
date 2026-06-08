@@ -3,12 +3,14 @@
 # Tulemus väljastatakse konsooli selge tabelina: TEHTUD / TEGEMATA
 # =================================================================================
 
-# --- Kasutaja seadistused (muuda vastavalt vajadusele) ---
+# --- Kasutaja seadistused (muudetud vastavalt sisendile) ---
 $OodatavServeriNimi = "AD1"
 $OodatavIPMuster    = '^10\.0\.\d{1,3}\.10$' # Sobib 10.0.XXX.10 kujuga
+$OodatavDomeenMuster = "^(ojala\.ofrest|test\.local)$" # Lubab mõlemat etteantud domeeni
 
-# Dünaamiline domeeninime tuvastus (ühildub nii perenimi.local kui TEST.LOCAL-iga)
+# Dünaamiline domeeninime tuvastus serverist
 $TegelikDomeen = (Get-WmiObject Win32_ComputerSystem).Domain
+$PraeguneNimi = $env:COMPUTERNAME
 
 # Raporti massiiv tulemuste kogumiseks
 $Raport = @()
@@ -29,12 +31,11 @@ function Lisa-Tulemus ($Kategooria, $Kontroll, $Staatus, $Detailid) {
 # ---------------------------------------------------------------------------------
 $Kat = "Baasvõrk ja domeen"
 
-# Serveri nimi
-$PraeguneNimi = $env:COMPUTERNAME
-if ($PraeguneNimi -eq $OodatavServeriNimi) {
-    Lisa-Tulemus $Kat "Serveri nimi on $OodatavServeriNimi" "TEHTUD" "Nimi on korras"
+# Serveri nimi (tõstutundetu kontroll)
+if ($PraeguneNimi -ieq $OodatavServeriNimi) {
+    Lisa-Tulemus $Kat "Serveri nimi on AD1" "TEHTUD" "Nimi on korras ($PraeguneNimi)"
 } else {
-    Lisa-Tulemus $Kat "Serveri nimi on $OodatavServeriNimi" "TEGEMATA" "Praegune nimi: $PraeguneNimi"
+    Lisa-Tulemus $Kat "Serveri nimi on AD1" "TEGEMATA" "Praegune nimi: $PraeguneNimi"
 }
 
 # IP-aadress
@@ -50,11 +51,11 @@ if ($IPSobib) {
     Lisa-Tulemus $Kat "IP-aadress on 10.0.XXX.10" "TEGEMATA" "Leitud IP-d: ($($IPAadressid -join ', '))"
 }
 
-# Domeeni kättesaadavus
-if ($TegelikDomeen -and $TegelikDomeen -ne "WORKGROUP") {
+# Domeeni kättesaadavus (kontrollib ojala.ofrest või test.local olemasolu)
+if ($TegelikDomeen -match $OodatavDomeenMuster) {
     Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEHTUD" "Domeen: $TegelikDomeen"
 } else {
-    Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEGEMATA" "Arvuti ei kuulu domeeni"
+    Lisa-Tulemus $Kat "Domeen on kättesaadav" "TEGEMATA" "Tuvastatud domeen: $TegelikDomeen (ootasime ojala.ofrest või test.local)"
 }
 
 # ---------------------------------------------------------------------------------
@@ -94,7 +95,6 @@ if (Get-Module ActiveDirectory) {
 # ---------------------------------------------------------------------------------
 $Kat = "Kasutajad"
 if (Get-Module ActiveDirectory) {
-    # Kasutajad ja nende oodatavad grupid
     $Kasutajakontrollid = @(
         @{Nimi="oppejoud1"; Grupp="Lektorid"},
         @{Nimi="oppejoud2"; Grupp="Lektorid"},
@@ -105,7 +105,6 @@ if (Get-Module ActiveDirectory) {
     foreach ($K in $Kasutajakontrollid) {
         $U = Get-ADUser -Filter "SamAccountName -eq '$($K.Nimi)'" -ErrorAction SilentlyContinue
         if ($U) {
-            # Kontrolli grupi kuuluvust
             $Grupid = Get-ADPrincipalGroupMembership $U | Select-Object -ExpandProperty Name
             if ($Grupid -contains $K.Grupp) {
                 Lisa-Tulemus $Kat "Kasutaja $($K.Nimi)" "TEHTUD" "Olemas ja grupis $($K.Grupp)"
@@ -166,9 +165,8 @@ foreach ($Kaust in $Kaustad) {
     }
 }
 
-# DFS Nimeruum
+# DFS Nimeruum (otsib nimeruumi, mis lõppeb nimega "\Tudengid")
 if (Get-Command Get-DfsnRoot -ErrorAction SilentlyContinue) {
-    # Otsib nimeruumi, mis lõppeb nimega "Tudengid" (hõlmab nii TEST.LOCAL kui muud)
     $DfsJuured = Get-DfsnRoot -Path "\\*\*" -ErrorAction SilentlyContinue
     $DfsLeitud = $false
     foreach ($Root in $DfsJuured) {
@@ -195,7 +193,7 @@ if (Get-Command Get-GPO -ErrorAction SilentlyContinue) {
     
     foreach ($Gpo in $OodatavadGpod) {
         if ($SysteemiGpod -contains $Gpo) {
-            Lisa-Tulemus $Kat "GPO '$Gpo' olemasolu" "TEHTUD" "Leitud poliitika"
+            Lisa-Tulemus $Kat "GPO '$Gpo' olemasolu" "TEHTUD" "Leitud"
         } else {
             Lisa-Tulemus $Kat "GPO '$Gpo' olemasolu" "TEGEMATA" "Poliitikat ei leitud"
         }
@@ -220,25 +218,24 @@ if ($LapsCmd) {
 # ---------------------------------------------------------------------------------
 $Kat = "Boonus (Litsents)"
 try {
-    # Päring litsentsiinfo saamiseks WMI-st
     $Lic = Get-WmiObject SoftwareLicensingProduct -Filter "Name like '%Windows%'" | 
            Where-Object { $_.PartialProductKey } | Select-Object -First 1
 
     if ($Lic) {
-        $PaeviJaanud = [Math]::Round($Lic.LicenseStatusReason / 1440, 1) # Minutid päevadeks
-        $RearmCount = $Lic.RemainingGracePeriod # Rearm loendur mõnes versioonis
-        
-        # Teise meetodi proovimine järelejäänud rearmide jaoks
+        $PaeviJaanud = [Math]::Round($Lic.LicenseStatusReason / 1440, 1)
         $Service = Get-WmiObject SoftwareLicensingService
         $RearmiksJaanud = $Service.RemainingWindowsRearmCount
 
-        $Info = "Päevi jäänud: $PaeviJaanud | Lubatud tagasivõtte (Rearm) alles: $RearmiksJaanud"
+        $Info = "Päevi jäänud: $PaeviJaanud | Rearm loendur alles: $RearmiksJaanud"
         Lisa-Tulemus $Kat "Litsentsi aegumine & Rearm" "INFO" $Info
     } else {
-        Lisa-Tulemus $Kat "Litsentsi aegumine & Rearm" "TEGEMATA" "Andmeid ei õnnestunud lugeda"
+        Lisa-Tulemus $Kat "Litsentsi aegumine & Rearm" "TEGEMATA" "Andmeid ei saanud lugeda"
     }
 } catch {
     Lisa-Tulemus $Kat "Litsentsi aegumine & Rearm" "TEGEMATA" "Viga päringu tegemisel"
 }
 
 # ---------------------------------------------------------------------------------
+# RAPORTI KUVAMINE TABELINA JA VÄRVIKODEERIMINE
+# ---------------------------------------------------------------------------------
+Clear-Host
