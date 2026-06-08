@@ -1,9 +1,9 @@
 # =================================================================================
-# KURSUSE PROGRESSI RAPORT - AUTOMAATKONTROLLI SKRIPT KOOS SALVESTAMISEGA
-# Tulemus väljastatakse konsooli selge tabelina ja salvestatakse töölauale.
+# KURSUSE PROGRESSI RAPORT - AUTOMAATKONTROLLI SKRIPT KOOS HTML SALVESTAMISEGA
+# Tulemus kuvatakse konsoolis ja salvestatakse visuaalse HTML-failina töölauale.
 # =================================================================================
 
-# --- Kasutaja seadistused (Parandatud trükiviga: ojala.forest) ---
+# --- Kasutaja seadistused ---
 $OodatavServeriNimi = "AD1"
 $OodatavIPMuster    = '^10\.0\.\d{1,3}\.10$' 
 $OodatavDomeenMuster = "^(ojala\.forest|test\.local)$" 
@@ -12,10 +12,9 @@ $OodatavDomeenMuster = "^(ojala\.forest|test\.local)$"
 $TegelikDomeen = (Get-WmiObject Win32_ComputerSystem).Domain
 $PraeguneNimi = $env:COMPUTERNAME
 
-# Failide salvestamise asukoht (Töölaud)
+# Faili salvestamise asukoht (Töölaud)
 $Toolaud = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop")
-$TxtFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.txt")
-$CsvFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.csv")
+$HtmlFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.html")
 
 # Raporti massiiv tulemuste kogumiseks
 $Raport = @()
@@ -227,50 +226,91 @@ try {
 }
 
 # ---------------------------------------------------------------------------------
-# RAPORTI KUVAMINE TABELINA JA VÄRVIKODEERIMINE
+# RAPORTI KUVAMINE KONSOOLIS (VÄRVIKODEERITUD)
 # ---------------------------------------------------------------------------------
-
-# =================================================================================
-# AINULT FAILIDESSE SALVESTAMISE KOODIPLOKK
-# =================================================================================
-
-# 1. Tuvastame kasutaja töölaua (Desktop) kausta asukoha
-$Toolaud = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop")
-$TxtFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.txt")
-$CsvFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.csv")
-
-# 2. Tekstifaili (.txt) koostamine ja ilusa tabelina vormindamine
-$TxtSisu = @()
-$TxtSisu += "======================================================================"
-$TxtSisu += "                KURSUSE PROGRESSI RAPORT: AUTOMAATAUDIT              "
-$TxtSisu += "======================================================================"
-$TxtSisu += "Genereeritud: $(Get-Date)"
-$TxtSisu += "Server: $env:COMPUTERNAME"
-$TxtSisu += ""
-# Tabeli päis (veergude laiused: 25, 35, 10 sümbolit)
-$TxtSisu += "{0,-25} | {1,-35} | {2,-10} | {3}" -f "Kategooria", "Kontrollitav punkt", "Staatus", "Detailid"
-$TxtSisu += "-------------------------------------------------------------------------------------------------------"
-
-# Lisame iga tulemuse rea tabelisse
-foreach ($Rida in $Raport) {
-    $TxtSisu += "{0,-25} | {1,-35} | {2,-10} | {3}" -f $Rida.Kategooria, $Rida.'Kontrollitav punkt', $Rida.Staatus, $Rida.Detailid
-}
-$TxtSisu += "======================================================================"
-
-# Kirjutame sisu tekstifaili (UTF-8 tagab täpitähtede õige kuvamise)
-$TxtSisu | Out-File -FilePath $TxtFailiTee -Encoding utf8 -Force
-
-
-# 3. CSV faili (.csv) eksportimine Exceli jaoks
-$Raport | Export-Csv -Path $CsvFailiTee -NoTypeInformation -Delimiter "," -Encoding utf8 -Force
-
-
-# 4. Teavitus konsooli, et failid on valmis
-Write-Host ""
-Write-Host "Raportid edukalt töölauale salvestatud!" -ForegroundColor Cyan
-Write-Host "-> Vaata faili: $TxtFailiTee" -ForegroundColor Gray
-Write-Host "-> Vaata faili: $CsvFailiTee" -ForegroundColor Gray
-
-
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "                KURSUSE PROGRESSI RAPORT: AUTOMAATAUDIT              " -ForegroundColor Cyan
+
+# =================================================================================
+# AINULT HTML FAILINA GENEREERIMISE JA SALVESTAMISE KOODIPLOKK
+# =================================================================================
+
+# 1. Tuvastame kasutaja töölaua (Desktop) kausta ja määrame faili asukoha
+$Toolaud = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop")
+$HtmlFailiTee = [System.IO.Path]::Combine($Toolaud, "Kursuse_progressi_raport.html")
+
+# 2. Defineerime HTML-i stiilid (CSS) tabeli ilusa välimuse jaoks
+$HtmlStiil = @"
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 20px; }
+    h1 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; font-size: 24px; }
+    .meta-info { font-style: italic; color: #666; margin-bottom: 20px; line-height: 1.6; }
+    table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background-color: #fff; }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background-color: #0056b3; color: white; text-transform: uppercase; font-size: 14px; }
+    tr:hover { background-color: #f1f1f1; }
+    .status-tehtud { background-color: #d4edda; color: #155724; font-weight: bold; text-align: center; border-radius: 4px; padding: 5px; }
+    .status-tegemata { background-color: #f8d7da; color: #721c24; font-weight: bold; text-align: center; border-radius: 4px; padding: 5px; }
+    .status-info { background-color: #fff3cd; color: #856404; font-weight: bold; text-align: center; border-radius: 4px; padding: 5px; }
+</style>
+"@
+
+# 3. HTML-i päise ja serveri info kokkupanek
+$HtmlSisu = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Kursuse progressi raport</title>
+    $HtmlStiil
+</head>
+<body>
+    <h1>Kursuse progressi raport: Automaataudit</h1>
+    <div class="meta-info">
+        <strong>Genereeritud:</strong> $(Get-Date)<br>
+        <strong>Server (Hostname):</strong> $env:COMPUTERNAME<br>
+        <strong>Domeen (Domain):</strong> $((Get-WmiObject Win32_ComputerSystem).Domain)
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Kategooria</th>
+                <th>Kontrollitav punkt</th>
+                <th style="width: 120px; text-align: center;">Status</th>
+                <th>Detailid</th>
+            </tr>
+        </thead>
+        <tbody>
+"@
+
+# 4. Lisame ridade kaupa andmed ja määrame staatuse järgi värvuse
+foreach ($Rida in $Raport) {
+    $Klass = ""
+    if ($Rida.Staatus -eq "TEHTUD") { $Klass = "status-tehtud" }
+    elseif ($Rida.Staatus -eq "TEGEMATA") { $Klass = "status-tegemata" }
+    else { $Klass = "status-info" }
+
+    $HtmlSisu += "<tr>"
+    $HtmlSisu += "<td>$($Rida.Kategooria)</td>"
+    $HtmlSisu += "<td>$($Rida.'Kontrollitav punkt')</td>"
+    $HtmlSisu += "<td><div class='$Klass'>$($Rida.Staatus)</div></td>"
+    $HtmlSisu += "<td>$($Rida.Detailid)</td>"
+    $HtmlSisu += "</tr>"
+}
+
+# 5. HTML struktuuri lõpetamine
+$HtmlSisu += @"
+        </tbody>
+    </table>
+</body>
+</html>
+"@
+
+# 6. Salvestame kogu sisu failina (UTF-8 tagab täpitähtede korrektse kuvamise)
+$HtmlSisu | Out-File -FilePath $HtmlFailiTee -Encoding utf8 -Force
+
+# 7. Kinnitus konsooli
+Write-Host ""
+Write-Host "HTML-raport edukalt töölauale genereeritud!" -ForegroundColor Cyan
+Write-Host "-> Faili tee: $HtmlFailiTee" -ForegroundColor Gray
