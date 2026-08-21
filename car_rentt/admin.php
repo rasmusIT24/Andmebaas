@@ -1,9 +1,9 @@
 <?php
-session_start();
-if (!isset($_SESSION['tuvastamine'])) {
-  header('Location: login.php');
-  exit();
-  }
+// session_start();
+// if (!isset($_SESSION['tuvastamine'])) {
+//   header('Location: login.php');
+//   exit();
+//   }
 include("config.php");
 ?>
 <!DOCTYPE html>
@@ -114,8 +114,8 @@ if ($valjund) {
             $engine =  $rida["engine"];
             $fuel =  $rida["fuel"];
             $price =  $rida["price"];
-            $description = $rida["description"];
-            $status = $rida["status"];
+            $description = "suva";
+            $status = "suva";
             $image =  $rida["image"];
         ?>
 
